@@ -39,7 +39,7 @@ Then restart the gateway.
 ### Install
 
 ```bash
-git clone https://github.com/seifeldin7/openclaw-twilio-voice.git
+git clone https://github.com/seif9116/openclaw-twilio-voice.git
 cd openclaw-twilio-voice
 npm install
 cp .env.example .env
