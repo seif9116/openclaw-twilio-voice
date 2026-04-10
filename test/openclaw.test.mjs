@@ -30,9 +30,9 @@ describe("streamChat", () => {
     const tokens = [];
     for await (const token of streamChat({
       messages: [{ role: "user", content: "hi" }],
-      sessionKey: "voice:CA1",
-      apiUrl: "http://localhost:18789",
+      apiUrl: "https://api.example.com/v4",
       apiToken: "test-token",
+      model: "glm-5-turbo",
     })) {
       tokens.push(token);
     }
@@ -40,13 +40,13 @@ describe("streamChat", () => {
     assert.deepEqual(tokens, ["Hello", " world"]);
 
     const call = globalThis.fetch.mock.calls[0];
-    assert.equal(call.arguments[0], "http://localhost:18789/v1/chat/completions");
+    assert.equal(call.arguments[0], "https://api.example.com/v4/chat/completions");
     const opts = call.arguments[1];
     assert.equal(opts.headers["Authorization"], "Bearer test-token");
-    assert.equal(opts.headers["x-openclaw-session-key"], "voice:CA1");
     const body = JSON.parse(opts.body);
     assert.equal(body.stream, true);
-    assert.equal(body.model, "openclaw/main");
+    assert.equal(body.model, "glm-5-turbo");
+    assert.deepEqual(body.thinking, { type: "disabled" });
   });
 
   it("throws on non-ok response", async () => {
@@ -54,18 +54,19 @@ describe("streamChat", () => {
       ok: false,
       status: 401,
       statusText: "Unauthorized",
+      text: async () => "",
     }));
 
     await assert.rejects(
       async () => {
         for await (const _ of streamChat({
           messages: [],
-          sessionKey: "voice:CA1",
-          apiUrl: "http://localhost:18789",
+          apiUrl: "https://api.example.com/v4",
           apiToken: "bad",
+          model: "glm-5-turbo",
         })) {}
       },
-      /OpenClaw API error: 401/,
+      /LLM API error: 401/,
     );
   });
 
@@ -92,9 +93,9 @@ describe("streamChat", () => {
     const tokens = [];
     for await (const token of streamChat({
       messages: [],
-      sessionKey: "voice:CA1",
-      apiUrl: "http://localhost:18789",
+      apiUrl: "https://api.example.com/v4",
       apiToken: "test",
+      model: "glm-5-turbo",
     })) {
       tokens.push(token);
     }

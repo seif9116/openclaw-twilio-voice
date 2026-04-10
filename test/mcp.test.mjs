@@ -5,12 +5,18 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { addCall, clearCalls, getCall, listActiveCalls } from "../lib/calls.mjs";
 import { createMcpServer } from "../lib/mcp.mjs";
 
+import { mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
+
+const TMP_DIR = join(import.meta.dirname, ".tmp-mcp-test");
+
 const CONFIG = {
   twilioSid: "AC_test_sid",
   twilioToken: "test_token_secret",
   twilioFrom: "+15550001111",
   publicUrl: "https://voice.example.com",
   defaultSystemPrompt: "You are a helpful assistant.",
+  dataDir: TMP_DIR,
 };
 
 let client;
@@ -27,59 +33,72 @@ async function setup() {
 
 beforeEach(async () => {
   clearCalls();
+  mkdirSync(TMP_DIR, { recursive: true });
   await setup();
 });
 
 afterEach(async () => {
   mock.restoreAll();
   await clientTransport.close();
+  rmSync(TMP_DIR, { recursive: true, force: true });
 });
 
 describe("list tools", () => {
-  it("returns all 4 tools with correct names", async () => {
+  it("returns all 6 tools with correct names", async () => {
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 4);
+    assert.equal(tools.length, 6);
     const names = tools.map(t => t.name).sort();
-    assert.deepEqual(names, ["get_call_status", "hang_up", "list_active_calls", "make_call"]);
+    assert.deepEqual(names, [
+      "get_call_status",
+      "get_call_transcript",
+      "hang_up",
+      "list_active_calls",
+      "list_recent_calls",
+      "make_call",
+    ]);
   });
 });
 
 describe("make_call", () => {
-  it("initiates a call and stores it", async () => {
-    mock.method(globalThis, "fetch", async () => ({
-      json: async () => ({ sid: "CAnew1", status: "queued" }),
-    }));
+  it("initiates a call with reason encoded in URL", async () => {
+    let capturedUrl = null;
+    mock.method(globalThis, "fetch", async (url, opts) => {
+      // Capture the Url parameter that we sent to Twilio
+      const body = new URLSearchParams(opts.body);
+      capturedUrl = body.get("Url");
+      return { json: async () => ({ sid: "CAnew1", status: "queued" }) };
+    });
 
     const result = await client.callTool({
       name: "make_call",
-      arguments: { to: "+15559998888", system_prompt: "Be friendly" },
+      arguments: { to: "+15559998888", reason: "Check in on pharmacy deal" },
     });
 
-    assert.equal(result.content.length, 1);
     assert.equal(result.content[0].type, "text");
     assert.ok(result.content[0].text.includes("CAnew1"));
     assert.ok(result.content[0].text.includes("queued"));
 
-    // Verify call was stored
-    const stored = getCall("CAnew1");
-    assert.ok(stored);
-    assert.equal(stored.to, "+15559998888");
-    assert.equal(stored.systemPrompt, "Be friendly");
-    assert.equal(stored.from, CONFIG.twilioFrom);
+    // Reason should be URL-encoded in the twiml callback URL
+    assert.ok(capturedUrl.includes("reason="));
+    const parsed = new URL(capturedUrl);
+    assert.equal(parsed.searchParams.get("reason"), "Check in on pharmacy deal");
   });
 
-  it("uses default system prompt when none provided", async () => {
-    mock.method(globalThis, "fetch", async () => ({
-      json: async () => ({ sid: "CAnew2", status: "queued" }),
-    }));
+  it("passes custom greeting through URL query", async () => {
+    let capturedUrl = null;
+    mock.method(globalThis, "fetch", async (url, opts) => {
+      const body = new URLSearchParams(opts.body);
+      capturedUrl = body.get("Url");
+      return { json: async () => ({ sid: "CAnew2", status: "queued" }) };
+    });
 
     await client.callTool({
       name: "make_call",
-      arguments: { to: "+15559998888" },
+      arguments: { to: "+15559998888", reason: "Test", greeting: "Hey it's me" },
     });
 
-    const stored = getCall("CAnew2");
-    assert.equal(stored.systemPrompt, CONFIG.defaultSystemPrompt);
+    const parsed = new URL(capturedUrl);
+    assert.equal(parsed.searchParams.get("greeting"), "Hey it's me");
   });
 
   it("returns error when Twilio reports an error", async () => {
@@ -89,7 +108,7 @@ describe("make_call", () => {
 
     const result = await client.callTool({
       name: "make_call",
-      arguments: { to: "+bad" },
+      arguments: { to: "+bad", reason: "Test" },
     });
 
     assert.equal(result.isError, true);
@@ -103,7 +122,7 @@ describe("make_call", () => {
 
     const result = await client.callTool({
       name: "make_call",
-      arguments: { to: "+15559998888" },
+      arguments: { to: "+15559998888", reason: "Test" },
     });
 
     assert.equal(result.isError, true);

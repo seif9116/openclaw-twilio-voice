@@ -14,8 +14,9 @@ const CONFIG = {
   voiceId: "test-voice-id",
   defaultSystemPrompt: "You are a test assistant.",
   defaultWelcomeGreeting: "Hi there!",
-  openclawApiUrl: "http://localhost:18789",
-  openclawApiToken: "test-oc-token",
+  llmApiUrl: "https://api.example.com/v4",
+  llmApiToken: "test-llm-token",
+  llmModel: "glm-5-turbo",
   dataDir: TMP_DIR,
   twilioAuthToken: AUTH_TOKEN,
 };
