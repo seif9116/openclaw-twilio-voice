@@ -1,0 +1,35 @@
+{
+  "name": "openclaw-twilio-voice",
+  "version": "1.0.0",
+  "description": "MCP server for AI-powered phone calls via Twilio ConversationRelay — built for OpenClaw",
+  "type": "module",
+  "main": "index.mjs",
+  "bin": {
+    "openclaw-twilio-voice": "index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "twilio",
+    "voice",
+    "phone",
+    "openclaw",
+    "claude-code",
+    "model-context-protocol",
+    "conversationrelay"
+  ],
+  "author": "Seif Eldin",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "fastify": "^5.0.0",
+    "@fastify/websocket": "^11.0.0",
+    "@fastify/formbody": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
