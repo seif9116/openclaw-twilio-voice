@@ -51,6 +51,10 @@ const OPENCLAW_WORKSPACE = process.env.OPENCLAW_WORKSPACE || join(process.env.HO
 const personaPrompt = buildSystemPrompt(OPENCLAW_WORKSPACE);
 const DEFAULT_SYSTEM_PROMPT = process.env.DEFAULT_SYSTEM_PROMPT || personaPrompt || "You are a helpful voice assistant. Be concise — the caller is listening, not reading.";
 if (personaPrompt) console.error(`Loaded persona from ${OPENCLAW_WORKSPACE} (${personaPrompt.length} chars)`);
+
+// Optional Telegram notifications — when notify_on_end is set on a call, send a summary here
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const DEFAULT_WELCOME_GREETING = process.env.DEFAULT_WELCOME_GREETING || "Hello, how can I help you?";
 
 // Modes:
@@ -74,6 +78,8 @@ const config = {
   defaultSystemPrompt: DEFAULT_SYSTEM_PROMPT,
   defaultWelcomeGreeting: DEFAULT_WELCOME_GREETING,
   dataDir: CALL_DATA_DIR,
+  telegramBotToken: TELEGRAM_BOT_TOKEN,
+  telegramChatId: TELEGRAM_CHAT_ID,
 };
 
 if (MODE === "webhook" || MODE === "both") {
